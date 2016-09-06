@@ -1,0 +1,2 @@
+[aws]
+ec2 ansible_host=54.84.168.252 ansible_user=ec2-user
