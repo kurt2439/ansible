@@ -1,0 +1,56 @@
+---
+# Installation of graphite taken from:
+# https://graphite.readthedocs.io/en/latest/install-pip.html
+- name: install graphite dependencies
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  - python27-devel
+  - python27-pip
+
+- name: install graphite with pip
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  - https://github.com/graphite-project/ceres/tarball/master
+  - whisper
+  - carbon
+  - graphite-web
+
+- name: push graphite configs
+  template:
+    src: "{{ item.src }}" 
+    dest: "{{ item.dest }}" 
+  with_items:
+  - { src: carbon.conf,
+      dest: /opt/graphite/conf/carbon.conf }
+  - { src: storage-schemas.conf,
+      dest: /opt/graphite/conf/storage-schemas.conf }
+
+# Massive room for improvement here...
+- name: check if carbon is running
+  shell: 
+    "ps -ef | grep carbon-cache.p[y]"
+  register:
+    carbon_process_status
+  ignore_errors: true
+  tags: 
+    - debug
+
+- debug: msg="{{ carbon_process_status.stdout }}"
+  tags:
+  - debug
+
+- debug: msg="{{ carbon_process_status.stdout.find("carbon-cache.py") }}"
+  tags:
+  - debug
+
+- name: start graphite
+  command:
+    "/opt/graphite/bin/carbon-cache.py start"
+  when:
+    carbon_process_status.stdout.find("carbon-cache.py") == -1
+  tags:
+    - debug
