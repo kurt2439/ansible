@@ -1,6 +1,6 @@
 ---
 # Installation of graphite taken from:
-# https://graphite.readthedocs.io/en/latest/install-pip.html
+# https://anomaly.io/install-graphite-centos/
 - name: install graphite dependencies
   yum:
     name: "{{ item }}"
@@ -8,16 +8,61 @@
   with_items:
   - python27-devel
   - python27-pip
+  - blas-devel 
+  - lapack-devel 
+  - libffi-devel
+  - gcc-c++ 
+  - git 
+  - pycairo 
+  - mod_wsgi 
+  - epel-release
+  - mod_wsgi-python27
+  - httpd
+  tags: 
+  - install
+  - install-graphite
 
-- name: install graphite with pip
+- name: get carbon source packages
+  git:
+    repo: https://github.com/graphite-project/carbon.git
+    dest: /usr/local/src/carbon
+  tags: 
+  - install
+  - install-graphite
+
+- name: get graphite source packages
+  git:
+    repo: https://github.com/graphite-project/graphite-web.git
+    dest: /usr/local/src/graphite-web
+  tags: 
+  - install
+  - install-graphite
+
+- name: install graphite-web python requirements
   pip:
-    name: "{{ item }}"
-    state: present
-  with_items:
-  - https://github.com/graphite-project/ceres/tarball/master
-  - whisper
-  - carbon
-  - graphite-web
+    executable: pip-2.7
+    requirements: /usr/local/src/graphite-web/requirements.txt
+  tags: 
+  - install
+  - install-graphite
+
+- name: install graphite from source
+  shell: 
+    "python2.7 setup.py install" 
+  args:    
+    chdir: /usr/local/src/graphite-web/
+  tags:
+  - install
+  - install-graphite
+
+- name: install carbon from source
+  shell: 
+    "python2.7 setup.py install" 
+  args:    
+    chdir: /usr/local/src/carbon/
+  tags:
+  - install
+  - install-graphite
 
 - name: push graphite configs
   template:
@@ -28,29 +73,41 @@
       dest: /opt/graphite/conf/carbon.conf }
   - { src: storage-schemas.conf,
       dest: /opt/graphite/conf/storage-schemas.conf }
-
-# Massive room for improvement here...
-- name: check if carbon is running
-  shell: 
-    "ps -ef | grep carbon-cache.p[y]"
-  register:
-    carbon_process_status
-  ignore_errors: true
-  tags: 
-    - debug
-
-- debug: msg="{{ carbon_process_status.stdout }}"
+  - { src: storage-aggregation.conf,
+      dest: /opt/graphite/conf/storage-aggregation.conf }
+  - { src: relay-rules.conf,
+      dest: /opt/graphite/conf/relay-rules.conf }
+  - { src: local_settings.py,
+      dest: /opt/graphite/webapp/graphite/local_settings.py }
+  - { src: graphite.wsgi,
+      dest: /opt/graphite/conf/graphite.wsgi }
+  - { src: graphite.conf,
+      dest: /etc/httpd/conf.d/graphite.conf }
+  notify:
+  - restart httpd
   tags:
-  - debug
-
-- debug: msg="{{ carbon_process_status.stdout.find("carbon-cache.py") }}"
+  - install
+  - install-graphite
+  - config-graphite
+  
+- name: push graphite init scripts
+  template:
+    src: "{{ item.src }}" 
+    dest: "{{ item.dest }}"
+    mode: "u+x,g+x,o+x" 
+  with_items:
+  - { src: carbon-cache,
+      dest: /etc/init.d/carbo-cache }
+  - { src: carbon-aggregator,
+      dest: /etc/init.d/carbo-aggregator }
+  - { src: carbon-relay,
+      dest: /etc/init.d/carbo-relay }
   tags:
-  - debug
+  - install
+  - install-graphite
+  - config-graphite
 
-- name: start graphite
-  command:
-    "/opt/graphite/bin/carbon-cache.py start"
-  when:
-    carbon_process_status.stdout.find("carbon-cache.py") == -1
-  tags:
-    - debug
+- name: start httpd
+  service: httpd
+   state: started
+   enabled: yes
