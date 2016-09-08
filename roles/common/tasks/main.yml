@@ -1,0 +1,24 @@
+---
+- name: add users
+  user: 
+    name: jchase 
+    comment: "James Chase"
+    groups: wheel
+- name: install ssh key
+  authorized_key: 
+    user: jchase
+    key: "{{ lookup( 'file', '~/Downloads/jchase-us-east.public') }}"
+- name: install more ssh keys
+  authorized_key:
+    user: jchase
+    key: "{{ lookup( './templates/public_keys/jchase-us-east.pub') }}"
+- name: install ssh key for calling user (for fun) 
+  authorized_key: 
+    user: jchase
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+- name: add wheel to passwordless sudo
+  blockinfile:
+    dest: /etc/sudoers
+    block: |
+      %wheel    ALL=(ALL)   NOPASSWD: ALL        
+...
