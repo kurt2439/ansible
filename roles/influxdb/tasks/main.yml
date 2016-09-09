@@ -1,0 +1,21 @@
+---
+- name: install influxdb
+  yum:
+    name: "https://dl.influxdata.com/influxdb/releases/influxdb-1.0.0.x86_64.rpm"
+    state: present
+
+- name: push influxdb config
+  template:
+    src: influxdb.conf
+    dest: /etc/influxdb/influxdb.conf
+
+# TO DO !!!!!!!!!!
+# SYMLINK THE /usr/share/collectd/types.db file to
+# /opt/collectd/...
+
+- name: start and enable influxdb
+  service:
+    name: influxdb
+    state: started
+    enabled: yes
+

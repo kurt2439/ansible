@@ -1,0 +1,65 @@
+---
+- name: Install required packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  # Many more packages should be gauranteed depending on
+  # plugin usage
+  - make 
+  - automake 
+  - gcc 
+  - gcc-c++ 
+  - kernel-devel 
+  - perl-devel
+  - bzip2
+  #- gtar
+  tags:
+  - install
+  - install-collectd
+
+- name: Unpack Collectd
+  unarchive:
+    src: "https://collectd.org/files/collectd-5.5.2.tar.gz"
+    dest: /usr/local/src/
+    remote_src: yes
+    copy: no
+    creates: /usr/local/src/collectd-5.5.2
+  tags:
+  - install
+  - install-collectd
+
+- name: Install collectd from source
+  shell:
+    "./configure && make && make install"
+  args:
+    chdir: /usr/local/src/collectd-5.5.2
+    creates: /opt/collectd    
+  tags:
+  - install
+  - install-collectd
+
+- name: push collectd init file
+  template:
+    src: collectd
+    dest: /etc/init.d/collectd
+    mode: 0755
+  tags:
+  - install
+  - install-collectd
+
+- name: register with chkconfig
+  command:
+    "chkconfig --add collectd"
+  tags:
+  - install
+  - install-collectd
+
+- name: start and enable collectd
+  service: 
+    name: collectd
+    enabled: yes
+    state: started
+  tags:
+  - install
+  - install-collectd

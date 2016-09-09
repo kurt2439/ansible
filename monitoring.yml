@@ -1,5 +1,8 @@
 - hosts: ec2
   become: true
   roles:
-#    - grafana-client
+    #- grafana-client
+    #- graphite-server
     - grafana-server
+    - influxdb
+    #- collectd

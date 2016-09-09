@@ -1,113 +1,16 @@
 ---
-# Installation of graphite taken from:
-# https://anomaly.io/install-graphite-centos/
-- name: install graphite dependencies
+- name: push the grafana repo
+  template:
+    src: grafana.repo
+    dest: /etc/yum.repos.d/grafana.repo 
+
+- name: install grafana
   yum:
-    name: "{{ item }}"
+    name: grafana
     state: present
-  with_items:
-  - python27-devel
-  - python27-pip
-  - blas-devel 
-  - lapack-devel 
-  - libffi-devel
-  - gcc-c++ 
-  - git 
-  - pycairo 
-  - mod_wsgi 
-  - epel-release
-  - mod_wsgi-python27
-  - httpd
-  tags: 
-  - install
-  - install-graphite
-
-- name: get carbon source packages
-  git:
-    repo: https://github.com/graphite-project/carbon.git
-    dest: /usr/local/src/carbon
-  tags: 
-  - install
-  - install-graphite
-
-- name: get graphite source packages
-  git:
-    repo: https://github.com/graphite-project/graphite-web.git
-    dest: /usr/local/src/graphite-web
-  tags: 
-  - install
-  - install-graphite
-
-- name: install graphite-web python requirements
-  pip:
-    executable: pip-2.7
-    requirements: /usr/local/src/graphite-web/requirements.txt
-  tags: 
-  - install
-  - install-graphite
-
-- name: install graphite from source
-  shell: 
-    "python2.7 setup.py install" 
-  args:    
-    chdir: /usr/local/src/graphite-web/
-  tags:
-  - install
-  - install-graphite
-
-- name: install carbon from source
-  shell: 
-    "python2.7 setup.py install" 
-  args:    
-    chdir: /usr/local/src/carbon/
-  tags:
-  - install
-  - install-graphite
-
-- name: push graphite configs
-  template:
-    src: "{{ item.src }}" 
-    dest: "{{ item.dest }}" 
-  with_items:
-  - { src: carbon.conf,
-      dest: /opt/graphite/conf/carbon.conf }
-  - { src: storage-schemas.conf,
-      dest: /opt/graphite/conf/storage-schemas.conf }
-  - { src: storage-aggregation.conf,
-      dest: /opt/graphite/conf/storage-aggregation.conf }
-  - { src: relay-rules.conf,
-      dest: /opt/graphite/conf/relay-rules.conf }
-  - { src: local_settings.py,
-      dest: /opt/graphite/webapp/graphite/local_settings.py }
-  - { src: graphite.wsgi,
-      dest: /opt/graphite/conf/graphite.wsgi }
-  - { src: graphite.conf,
-      dest: /etc/httpd/conf.d/graphite.conf }
-  notify:
-  - restart httpd
-  tags:
-  - install
-  - install-graphite
-  - config-graphite
-  
-- name: push graphite init scripts
-  template:
-    src: "{{ item.src }}" 
-    dest: "{{ item.dest }}"
-    mode: "u+x,g+x,o+x" 
-  with_items:
-  - { src: carbon-cache,
-      dest: /etc/init.d/carbo-cache }
-  - { src: carbon-aggregator,
-      dest: /etc/init.d/carbo-aggregator }
-  - { src: carbon-relay,
-      dest: /etc/init.d/carbo-relay }
-  tags:
-  - install
-  - install-graphite
-  - config-graphite
-
-- name: start httpd
-  service: httpd
-   state: started
-   enabled: yes
+   
+- name: start and enable grafana
+  service:
+    name: grafana-server
+    state: started
+    enabled: yes
