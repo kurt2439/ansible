@@ -1,0 +1,4 @@
+- hosts: blackbox
+  become: yes
+  roles:
+  - virt-host

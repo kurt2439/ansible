@@ -1,0 +1,5 @@
+---
+- name: install yum group Virtualization Host
+  yum:
+    name: "Virtualization Host"
+    state: present

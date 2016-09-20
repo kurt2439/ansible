@@ -1,0 +1,5 @@
+---
+- hosts: blackbox
+  user: root
+  roles:
+  - common
